@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>겨울방학 학습 체크</title>
+    <style>
+        /* 기존 스타일 동일 (생략 없이 전체 포함 권장) */
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-gradient: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            --main-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--main-gradient); min-height: 100vh; display: flex; justify-content: center; padding: 10px; }
+        .container { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); width: 100%; max-width: 500px; margin: 10px auto; }
+        .container.calendar-mode { max-width: 600px; }
+        h1 { font-size: 1.2rem; color: var(--primary-color); display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .nav-button { background: var(--primary-color); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .progress-section { background: var(--main-gradient); border-radius: 15px; padding: 15px; color: white; margin-bottom: 20px; }
+        .progress-display { display: flex; align-items: center; gap: 10px; }
+        .progress-percentage { font-size: 1.8rem; font-weight: bold; min-width: 65px; }
+        .progress-bar-container { flex: 1; height: 12px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--success-gradient); transition: width 0.4s ease; }
+        .subjects { display: flex; flex-direction: column; gap: 10px; }
+        .subject-item { background: #f8f9fa; border-radius: 12px; padding: 12px; border: 1px solid #eee; transition: 0.3s; }
+        .subject-item.checked { background: var(--success-gradient); border-color: transparent; }
+        .subject-header { display: flex; align-items: center; gap: 8px; }
+        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 1rem; width: 80px; flex-grow: 1; }
+        .subject-progress-container { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+        .subject-progress-bar { width: 40px; height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+        .subject-progress-fill { height: 100%; background: var(--primary-color); }
+        .subject-progress { font-size: 0.8rem; font-weight: bold; color: var(--primary-color); min-width: 35px; text-align: right; }
+        .detail-list { display: none; margin-top: 10px; padding-left: 5px; }
+        .detail-list.expanded { display: block; }
+        .detail-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .detail-item input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
+        .detail-item.checked input[type="text"] { text-decoration: line-through; opacity: 0.6; }
+        .save-button, .reset-button, .view-toggle-button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .save-button { background: var(--primary-color); color: white; }
+        .reset-button { background: #ff6b6b; color: white; margin-top: 5px; }
+        .view-toggle-button { background: var(--secondary-color); color: white; margin-bottom: 15px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .calendar-day-header { text-align: center; font-size: 0.8rem; font-weight: bold; padding: 10px 0; color: #666; }
+        .calendar-day { aspect-ratio: 1; border: 1px solid #f0f0f0; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.9rem; cursor: pointer; }
+        .calendar-day.has-data { background: var(--success-gradient); border-color: transparent; font-weight: bold; }
+        .calendar-day.empty { border: none; cursor: default; }
+        @media (max-width: 380px) { .subject-progress-bar { display: none; } .subject-name-input { width: 60px; } }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div id="dailyView">
+            <button class="view-toggle-button" onclick="toggleView()">📅 월별 현황 보기</button>
+            <h1>
+                <button class="nav-button" onclick="changeDate(-1)">◀</button>
+                <span id="displayDateText">학습 체크</span>
+                <button class="nav-button" onclick="changeDate(1)">▶</button>
+            </h1>
+            <div id="currentDateDetail" style="text-align:center; margin-bottom:15px; color:#666; font-size:0.9rem;"></div>
+            <div class="progress-section">
+                <div class="progress-display">
+                    <div class="progress-percentage" id="progressPercentage">0%</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div style="text-align:center; font-size:0.8rem; margin-top:5px;" id="progressText">0/5 과목 완료</div>
+            </div>
+            <div class="subjects" id="subjectsList"></div>
+            <button class="save-button" onclick="saveAllData()">💾 지금 내용 저장하기</button>
+            <button class="reset-button" onclick="resetAll()">🔄 오늘 체크 초기화</button>
+        </div>
+        <div id="calendarView" style="display:none;">
+            <button class="view-toggle-button" onclick="toggleView()">📝 일별 보기</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 id="calendarTitle" style="font-size:1.2rem; color:var(--primary-color);"></h2>
+                <div style="display:flex; gap:8px;">
+                    <button class="nav-button" onclick="changeCalendarMonth(-1)">◀</button>
+                    <button class="nav-button" onclick="changeCalendarMonth(1)">▶</button>
+                </div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentDisplayDate = new Date();
+        let currentCalendarDate = new Date();
+        let isResetting = false;
+
+        const defaultSubjects = [
+            { id: 'korean', name: '국어', emoji: '📖' },
+            { id: 'english', name: '영어', emoji: '🔤' },
+            { id: 'math', name: '수학', emoji: '🔢' },
+            { id: 'reading', name: '독서', emoji: '📚' },
+            { id: 'free', name: '자유학습', emoji: '🎨' }
+        ];
+
+        function init() {
+            renderSubjects();
+            displayDate();
+            loadAllData();
+        }
+
+        function renderSubjects() {
+            const container = document.getElementById('subjectsList');
+            container.innerHTML = defaultSubjects.map(s => `
+                <div class="subject-item" id="${s.id}-item">
+                    <div class="subject-header">
+                        <input type="checkbox" id="${s.id}" onchange="updateProgress()">
+                        <span>${s.emoji}</span>
+                        <input type="text" class="subject-name-input" id="${s.id}-name" value="${s.name}" onchange="saveSubjectName('${s.id}')">
+                        <div class="subject-progress-container">
+                            <div class="subject-progress-bar"><div class="subject-progress-fill" id="${s.id}-progress-bar" style="width:0%"></div></div>
+                            <span class="subject-progress" id="${s.id}-progress">0%</span>
+                        </div>
+                        <div style="cursor:pointer; padding:5px; color:#999;" onclick="toggleDetails('${s.id}')">▼</div>
+                    </div>
+                    <div class="detail-list" id="${s.id}-details">
+                        ${Array(5).fill(0).map((_, i) => `
+                            <div class="detail-item">
+                                <input type="checkbox" onchange="updateSubjectProgress('${s.id}')">
+                                <input type="text" placeholder="내용 입력..." onchange="saveDetailState('${s.id}')">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 날짜 키 생성 시 '0'을 붙여서 일관성 유지 (예: 2024_01_04)
+        function getStorageKey(dateObj = currentDisplayDate) { 
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `winter_study_${y}_${m}_${d}`; 
+        }
+
+        function displayDate() {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('displayDateText').textContent = `${currentDisplayDate.getMonth()+1}월 ${currentDisplayDate.getDate()}일 (${days[currentDisplayDate.getDay()]})`;
+            document.getElementById('currentDateDetail').textContent = `${currentDisplayDate.getFullYear()}년 겨울방학`;
+        }
+
+        function toggleView() {
+            const dv = document.getElementById('dailyView');
+            const cv = document.getElementById('calendarView');
+            const container = document.getElementById('mainContainer');
+            if(dv.style.display === 'none') {
+                dv.style.display = 'block'; cv.style.display = 'none';
+                container.classList.remove('calendar-mode');
+                loadAllData();
+            } else {
+                dv.style.display = 'none'; cv.style.display = 'block';
+                container.classList.add('calendar-mode');
+                renderCalendar();
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            document.getElementById('calendarTitle').textContent = `${year}년 ${month + 1}월`;
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            ['일','월','화','수','목','금','토'].forEach(d => grid.innerHTML += `<div class="calendar-day-header">${d}</div>`);
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="calendar-day empty"></div>`;
+            for (let d = 1; d <= lastDate; d++) {
+                const tempDate = new Date(year, month, d);
+                const key = getStorageKey(tempDate);
+                const saved = JSON.parse(localStorage.getItem(key) || '{}');
+                const doneCount = Object.values(saved).filter(v => v === true).length;
+                let dayClass = "calendar-day";
+                let progressHtml = `<div class="day-progress">-</div>`;
+                if (doneCount > 0) {
+                    dayClass += " has-data";
+                    progressHtml = `<div class="day-progress">${Math.round((doneCount/5)*100)}%</div>`;
+                }
+                grid.innerHTML += `<div class="${dayClass}" onclick="selectDate(${year}, ${month}, ${d})"><div class="day-number">${d}</div>${progressHtml}</div>`;
+            }
+        }
+
+        function selectDate(y, m, d) { currentDisplayDate = new Date(y, m, d); toggleView(); }
+        function changeCalendarMonth(v) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + v); renderCalendar(); }
+
+        function updateSubjectProgress(sid) {
+            if(isResetting) return;
+            const det = document.getElementById(`${sid}-details`);
+            const cbs = det.querySelectorAll('input[type="checkbox"]');
+            const checkedCount = Array.from(cbs).filter(c => c.checked).length;
+            cbs.forEach(c => c.closest('.detail-item').classList.toggle('checked', c.checked));
+            const p = Math.round((checkedCount / 5) * 100);
+            document.getElementById(`${sid}-progress`).textContent = p + '%';
+            document.getElementById(`${sid}-progress-bar`).style.width = p + '%';
+            document.getElementById(sid).checked = (checkedCount === 5);
+            updateProgress();
+            saveDetailState(sid); // 변경 즉시 저장
+        }
+
+        function updateProgress() {
+            if(isResetting) return;
+            let done = 0;
+            defaultSubjects.forEach(s => {
+                const cb = document.getElementById(s.id);
+                if(cb) {
+                    const isChecked = cb.checked;
+                    document.getElementById(`${s.id}-item`).classList.toggle('checked', isChecked);
+                    if(isChecked) done++;
+                }
+            });
+            const p = Math.round((done / 5) * 100);
+            document.getElementById('progressPercentage').textContent = p + '%';
+            document.getElementById('progressBarFill').style.width = p + '%';
+            document.getElementById('progressText').textContent = `${done}/5 과목 완료`;
+            
+            const state = {};
+            defaultSubjects.forEach(s => state[s.id] = document.getElementById(s.id).checked);
+            localStorage.setItem(getStorageKey(), JSON.stringify(state));
+        }
+
+        function loadAllData() {
+            isResetting = true;
+            const key = getStorageKey();
+            const main = JSON.parse(localStorage.getItem(key) || '{}');
+            defaultSubjects.forEach(s => {
+                const nameKey = `${key}_${s.id}_name`;
+                document.getElementById(`${s.id}-name`).value = localStorage.getItem(nameKey) || s.name;
+                document.getElementById(s.id).checked = !!main[s.id];
+                const dets = JSON.parse(localStorage.getItem(`${key}_${s.id}_details`) || '[]');
+                const items = document.getElementById(`${s.id}-details`).querySelectorAll('.detail-item');
+                items.forEach((item, i) => {
+                    item.querySelector('input[type="checkbox"]').checked = dets[i]?.checked || false;
+                    item.querySelector('input[type="text"]').value = dets[i]?.text || '';
+                    item.classList.toggle('checked', item.querySelector('input[type="checkbox"]').checked);
+                });
+                const cp = Math.round((Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length / 5) * 100);
+                document.getElementById(`${s.id}-progress`).textContent = cp + '%';
+                document.getElementById(`${s.id}-progress-bar`).style.width = cp + '%';
+            });
+            updateProgress();
+            isResetting = false;
+        }
+
+        function saveSubjectName(sid) { if(!isResetting) localStorage.setItem(`${getStorageKey()}_${sid}_name`, document.getElementById(`${sid}-name`).value); }
+        function saveDetailState(sid) {
+            if(isResetting) return;
+            const data = Array.from(document.getElementById(`${sid}-details`).querySelectorAll('.detail-item')).map(it => ({
+                checked: it.querySelector('input[type="checkbox"]').checked,
+                text: it.querySelector('input[type="text"]').value
+            }));
+            localStorage.setItem(`${getStorageKey()}_${sid}_details`, JSON.stringify(data));
+        }
+
+        function saveAllData() {
+            defaultSubjects.forEach(s => { saveSubjectName(s.id); saveDetailState(s.id); });
+            updateProgress();
+            alert('아이폰 로컬 저장소에 안전하게 저장되었습니다! ✅');
+        }
+
+        function resetAll() {
+            if(confirm('오늘 데이터를 전부 지울까요?')) {
+                isResetting = true;
+                const key = getStorageKey();
+                localStorage.removeItem(key);
+                defaultSubjects.forEach(s => { localStorage.removeItem(`${key}_${s.id}_details`); localStorage.removeItem(`${key}_${s.id}_name`); });
+                renderSubjects(); loadAllData();
+                isResetting = false;
+            }
+        }
+        function toggleDetails(sid) { document.getElementById(`${sid}-details`).classList.toggle('expanded'); }
+        function changeDate(v) { currentDisplayDate.setDate(currentDisplayDate.getDate() + v); displayDate(); loadAllData(); }
+        window.onload = init;
+    </script>
+</body>
+</html>
