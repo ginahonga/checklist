@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>겨울방학 학습 체크</title>
 
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5968/5968914.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/240/winter.png">
+    <link rel="icon" href="https://img.icons8.com/fluency/240/winter.png">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="겨울방학">
@@ -37,9 +39,10 @@
         .subjects { display: flex; flex-direction: column; gap: 10px; }
         .subject-item { background: #f8f9fa; border-radius: 12px; padding: 12px 15px; border: 1px solid #eee; transition: 0.3s; }
         .subject-item.checked { background: #f0fdf4; border-color: #bdf3d4; }
-        .subject-header { display: flex; align-items: center; gap: 6px; width: 100%; overflow: hidden; }
-        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; }
         
+        /* 레이아웃 이탈 방지 정렬 */
+        .subject-header { display: flex; align-items: center; gap: 6px; width: 100%; overflow: hidden; }
+        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; text-overflow: ellipsis; }
         .prog-text { font-size: 0.8rem; font-weight: bold; color: var(--primary-color); min-width: 38px; text-align: right; flex-shrink: 0; }
 
         .icon-btn { 
@@ -127,6 +130,7 @@
     </div>
 
     <script>
+        /* [기존 로직 유지] */
         let currentDisplayDate = new Date();
         let currentCalendarDate = new Date();
         let isResetting = false;
@@ -181,6 +185,7 @@
 
         function addDetailItem(sid) {
             const area = document.getElementById(`${sid}-detail-items`);
+            if(!area) return;
             const div = document.createElement('div');
             div.className = 'detail-item';
             div.innerHTML = `<input type="checkbox" onchange="updateSubjectProgress('${sid}')"><input type="text" placeholder="할 일..." onchange="saveDetailState('${sid}')"><button class="icon-btn del-btn" style="width:20px; height:20px; font-size:0.5rem;" onclick="this.parentElement.remove(); updateSubjectProgress('${sid}');">✕</button>`;
@@ -233,23 +238,26 @@
             currentSubjects.forEach(s => {
                 const cb = document.getElementById(s.id);
                 if(cb) cb.checked = !!main[s.id];
-                document.getElementById(`${s.id}-name`).value = localStorage.getItem(`${key}_${s.id}_name`) || s.name;
+                const nameInput = document.getElementById(`${s.id}-name`);
+                if(nameInput) nameInput.value = localStorage.getItem(`${key}_${s.id}_name`) || s.name;
                 
                 const dets = JSON.parse(localStorage.getItem(`${key}_${s.id}_details`) || '[]');
                 const area = document.getElementById(`${s.id}-detail-items`);
-                area.innerHTML = '';
-                dets.forEach(d => {
-                    const div = document.createElement('div');
-                    div.className = 'detail-item ' + (d.checked ? 'checked' : '');
-                    div.innerHTML = `<input type="checkbox" ${d.checked?'checked':''} onchange="updateSubjectProgress('${s.id}')"><input type="text" value="${d.text||''}" onchange="saveDetailState('${s.id}')"><button class="icon-btn del-btn" style="width:20px; height:20px; font-size:0.5rem;" onclick="this.parentElement.remove(); updateSubjectProgress('${s.id}');">✕</button>`;
-                    area.appendChild(div);
-                });
-                if(dets.length === 0) addDetailItem(s.id);
+                if(area) {
+                    area.innerHTML = '';
+                    dets.forEach(d => {
+                        const div = document.createElement('div');
+                        div.className = 'detail-item ' + (d.checked ? 'checked' : '');
+                        div.innerHTML = `<input type="checkbox" ${d.checked?'checked':''} onchange="updateSubjectProgress('${s.id}')"><input type="text" value="${d.text||''}" onchange="saveDetailState('${s.id}')"><button class="icon-btn del-btn" style="width:20px; height:20px; font-size:0.5rem;" onclick="this.parentElement.remove(); updateSubjectProgress('${s.id}');">✕</button>`;
+                        area.appendChild(div);
+                    });
+                    if(dets.length === 0) addDetailItem(s.id);
 
-                const items = area.querySelectorAll('.detail-item');
-                const ck = Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length;
-                const p = items.length > 0 ? Math.round((ck / items.length) * 100) : 0;
-                document.getElementById(`${s.id}-progress`).textContent = p + '%';
+                    const items = area.querySelectorAll('.detail-item');
+                    const ck = Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length;
+                    const p = items.length > 0 ? Math.round((ck / items.length) * 100) : 0;
+                    document.getElementById(`${s.id}-progress`).textContent = p + '%';
+                }
             });
             isResetting = false;
             updateProgress();
@@ -264,45 +272,15 @@
                 checked: it.querySelector('input[type="checkbox"]').checked,
                 text: it.querySelector('input[type="text"]').value
             }));
-            localStorage.setItem(`${getStorageKey()}_sid_${sid}_details`, JSON.stringify(data));
             localStorage.setItem(`${getStorageKey()}_${sid}_details`, JSON.stringify(data));
         }
         function saveCurrentSubjectList() { localStorage.setItem(`${getStorageKey()}_list`, JSON.stringify(currentSubjects)); }
-        
-        function tempSaveAll() {
-            currentSubjects.forEach(s => { saveSubjectName(s.id); saveDetailState(s.id); });
-            saveCurrentSubjectList();
-            updateProgress();
-        }
-
+        function tempSaveAll() { currentSubjects.forEach(s => { saveSubjectName(s.id); saveDetailState(s.id); }); saveCurrentSubjectList(); updateProgress(); }
         function saveAllData() { tempSaveAll(); alert('저장되었습니다! ✨'); }
-
-        function resetAll() {
-            if(confirm('이 날짜의 모든 기록을 초기화할까요?')) {
-                const key = getStorageKey();
-                localStorage.removeItem(key);
-                currentSubjects.forEach(s => {
-                    localStorage.removeItem(`${key}_${s.id}_details`);
-                    localStorage.removeItem(`${key}_sid_${s.id}_details`);
-                });
-                loadAllData();
-            }
-        }
-
-        function changeDate(v) { 
-            tempSaveAll();
-            currentDisplayDate.setDate(currentDisplayDate.getDate() + v); 
-            init(); 
-        }
-
+        function resetAll() { if(confirm('이 날짜의 모든 기록을 초기화할까요?')) { const key = getStorageKey(); localStorage.removeItem(key); currentSubjects.forEach(s => localStorage.removeItem(`${key}_${s.id}_details`)); loadAllData(); } }
+        function changeDate(v) { tempSaveAll(); currentDisplayDate.setDate(currentDisplayDate.getDate() + v); init(); }
         function displayDate() { const days = ['일','월','화','수','목','금','토']; document.getElementById('displayDateText').textContent = `${currentDisplayDate.getMonth()+1}월 ${currentDisplayDate.getDate()}일 (${days[currentDisplayDate.getDay()]})`; }
-        
-        function toggleView() {
-            const dv = document.getElementById('dailyView'), cv = document.getElementById('calendarView');
-            if(dv.style.display === 'none') { dv.style.display = 'block'; cv.style.display = 'none'; loadAllData(); } 
-            else { dv.style.display = 'none'; cv.style.display = 'block'; renderCalendar(); }
-        }
-
+        function toggleView() { const dv = document.getElementById('dailyView'), cv = document.getElementById('calendarView'); if(dv.style.display === 'none') { dv.style.display = 'block'; cv.style.display = 'none'; loadAllData(); } else { dv.style.display = 'none'; cv.style.display = 'block'; renderCalendar(); } }
         function renderCalendar() {
             const year = currentCalendarDate.getFullYear(), month = currentCalendarDate.getMonth();
             document.getElementById('calendarTitle').textContent = `${year}년 ${month + 1}월`;
