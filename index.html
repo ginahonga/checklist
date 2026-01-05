@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>겨울방학 학습 체크</title>
+
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5968/5968914.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="겨울방학">
+
     <style>
         :root {
             --primary-color: #667eea;
@@ -31,15 +37,11 @@
         .subjects { display: flex; flex-direction: column; gap: 10px; }
         .subject-item { background: #f8f9fa; border-radius: 12px; padding: 12px 15px; border: 1px solid #eee; transition: 0.3s; }
         .subject-item.checked { background: #f0fdf4; border-color: #bdf3d4; }
-        
-        /* [핵심 수정] 헤더 영역 정렬 최적화 */
         .subject-header { display: flex; align-items: center; gap: 6px; width: 100%; overflow: hidden; }
-        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; }
         
-        /* 진행률 텍스트 고정 */
         .prog-text { font-size: 0.8rem; font-weight: bold; color: var(--primary-color); min-width: 38px; text-align: right; flex-shrink: 0; }
 
-        /* 버튼 찌그러짐 및 이탈 방지 */
         .icon-btn { 
             background: white; 
             border: 1px solid #e2e8f0; 
@@ -245,7 +247,7 @@
                 if(dets.length === 0) addDetailItem(s.id);
 
                 const items = area.querySelectorAll('.detail-item');
-                const ck = Array.from(items).filter(it => it.querySelector('input[type=\"checkbox\"]').checked).length;
+                const ck = Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length;
                 const p = items.length > 0 ? Math.round((ck / items.length) * 100) : 0;
                 document.getElementById(`${s.id}-progress`).textContent = p + '%';
             });
@@ -321,7 +323,6 @@
         }
         function changeCalendarMonth(v) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + v); renderCalendar(); }
         function toggleDetails(sid) { document.getElementById(`${sid}-details`).classList.toggle('expanded'); }
-        window.onload = () => { /* 대기 */ };
     </script>
 </body>
 </html>
