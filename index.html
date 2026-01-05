@@ -34,7 +34,25 @@
         .subject-header { display: flex; align-items: center; gap: 8px; }
         .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 1rem; flex-grow: 1; outline: none; }
         
-        .icon-btn { background: white; border: 1px solid #e2e8f0; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; color: #718096; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; transition: 0.2s; }
+        /* [수정된 부분] 아이폰 세로모드 찌그러짐 방지 */
+        .icon-btn { 
+            background: white; 
+            border: 1px solid #e2e8f0; 
+            width: 28px !important; 
+            height: 28px !important; 
+            min-width: 28px; /* 너비 고정 */
+            min-height: 28px; /* 높이 고정 */
+            flex-shrink: 0; /* flex 환경에서 줄어들지 않도록 설정 */
+            border-radius: 50%; 
+            cursor: pointer; 
+            color: #718096; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.7rem; 
+            transition: 0.2s; 
+            padding: 0; /* 패딩 초기화로 원형 유지 */
+        }
         .icon-btn:hover { background: #f7fafc; color: var(--primary-color); }
         .del-btn { color: #f56565; border-color: #fed7d7; }
 
@@ -140,11 +158,10 @@
 
         function addNewSubject() {
             if(currentSubjects.length >= 10) return alert('최대 10개까지 가능합니다.');
-            // 추가 전 현재 상태 임시 저장 (초기화 방지)
             tempSaveAll();
             currentSubjects.push({ id: 'sub_' + Date.now(), name: '새 과목' });
             saveCurrentSubjectList();
-            loadAllData(); // 다시 로드하여 체크상태 유지
+            loadAllData();
         }
 
         function deleteSubject(sid) {
@@ -222,7 +239,6 @@
                 });
                 if(dets.length === 0) addDetailItem(s.id);
 
-                // 개별 진행률 복구
                 const items = area.querySelectorAll('.detail-item');
                 const ck = Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length;
                 const p = items.length > 0 ? Math.round((ck / items.length) * 100) : 0;
@@ -241,13 +257,11 @@
                 checked: it.querySelector('input[type="checkbox"]').checked,
                 text: it.querySelector('input[type="text"]').value
             }));
-            localStorage.setItem(`${getStorageKey()}_sid_${sid}_details`, JSON.stringify(data)); // 고유 키 사용
-            // 호환성을 위해 기존 키도 유지
+            localStorage.setItem(`${getStorageKey()}_sid_${sid}_details`, JSON.stringify(data));
             localStorage.setItem(`${getStorageKey()}_${sid}_details`, JSON.stringify(data));
         }
         function saveCurrentSubjectList() { localStorage.setItem(`${getStorageKey()}_list`, JSON.stringify(currentSubjects)); }
         
-        // 추가 시 상태 저장을 위한 함수
         function tempSaveAll() {
             currentSubjects.forEach(s => { saveSubjectName(s.id); saveDetailState(s.id); });
             saveCurrentSubjectList();
@@ -259,18 +273,17 @@
         function resetAll() {
             if(confirm('이 날짜의 모든 기록을 초기화할까요?')) {
                 const key = getStorageKey();
-                // 해당 날짜 관련 데이터만 선별 삭제
                 localStorage.removeItem(key);
                 currentSubjects.forEach(s => {
                     localStorage.removeItem(`${key}_${s.id}_details`);
                     localStorage.removeItem(`${key}_sid_${s.id}_details`);
                 });
-                loadAllData(); // 페이지 새로고침 없이 해당 일 데이터만 리셋
+                loadAllData();
             }
         }
 
         function changeDate(v) { 
-            tempSaveAll(); // 날짜 이동 전 자동 저장
+            tempSaveAll();
             currentDisplayDate.setDate(currentDisplayDate.getDate() + v); 
             init(); 
         }
