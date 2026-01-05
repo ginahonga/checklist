@@ -7,10 +7,11 @@
 
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/240/winter.png">
     <link rel="icon" href="https://img.icons8.com/fluency/240/winter.png">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="겨울방학">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root {
@@ -39,31 +40,15 @@
         .subjects { display: flex; flex-direction: column; gap: 10px; }
         .subject-item { background: #f8f9fa; border-radius: 12px; padding: 12px 15px; border: 1px solid #eee; transition: 0.3s; }
         .subject-item.checked { background: #f0fdf4; border-color: #bdf3d4; }
-        
-        /* 레이아웃 이탈 방지 정렬 */
         .subject-header { display: flex; align-items: center; gap: 6px; width: 100%; overflow: hidden; }
-        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; text-overflow: ellipsis; }
+        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; }
         .prog-text { font-size: 0.8rem; font-weight: bold; color: var(--primary-color); min-width: 38px; text-align: right; flex-shrink: 0; }
 
         .icon-btn { 
-            background: white; 
-            border: 1px solid #e2e8f0; 
-            width: 28px !important; 
-            height: 28px !important; 
-            min-width: 28px;
-            min-height: 28px;
-            flex-shrink: 0; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            color: #718096; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 0.7rem; 
-            padding: 0;
-            line-height: 1;
+            background: white; border: 1px solid #e2e8f0; width: 28px !important; height: 28px !important; 
+            min-width: 28px; min-height: 28px; flex-shrink: 0; border-radius: 50%; 
+            cursor: pointer; color: #718096; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; padding: 0;
         }
-        .icon-btn:hover { background: #f7fafc; color: var(--primary-color); }
         .del-btn { color: #f56565; border-color: #fed7d7; }
 
         .detail-list { display: none; margin-top: 10px; padding-left: 5px; border-top: 1px dashed #eee; padding-top: 10px; }
@@ -113,6 +98,7 @@
             <div class="subjects" id="subjectsList"></div>
             <button class="btn-action add-btn" onclick="addNewSubject()">+ 과목 추가 (최대 10개)</button>
             <button class="btn-action save-button" onclick="saveAllData()">💾 지금 내용 저장하기</button>
+            <button class="btn-action" style="background:#ecfdf5; color:#059669; font-size:0.85rem;" onclick="downloadExcel()">📊 전체 기록 엑셀로 받기</button>
             <button class="btn-action" style="background:#fff5f5; color:#f56565; font-size:0.8rem;" onclick="resetAll()">🔄 이 날짜 초기화</button>
         </div>
 
@@ -130,7 +116,6 @@
     </div>
 
     <script>
-        /* [기존 로직 유지] */
         let currentDisplayDate = new Date();
         let currentCalendarDate = new Date();
         let isResetting = false;
@@ -252,7 +237,6 @@
                         area.appendChild(div);
                     });
                     if(dets.length === 0) addDetailItem(s.id);
-
                     const items = area.querySelectorAll('.detail-item');
                     const ck = Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length;
                     const p = items.length > 0 ? Math.round((ck / items.length) * 100) : 0;
@@ -278,9 +262,31 @@
         function tempSaveAll() { currentSubjects.forEach(s => { saveSubjectName(s.id); saveDetailState(s.id); }); saveCurrentSubjectList(); updateProgress(); }
         function saveAllData() { tempSaveAll(); alert('저장되었습니다! ✨'); }
         function resetAll() { if(confirm('이 날짜의 모든 기록을 초기화할까요?')) { const key = getStorageKey(); localStorage.removeItem(key); currentSubjects.forEach(s => localStorage.removeItem(`${key}_${s.id}_details`)); loadAllData(); } }
-        function changeDate(v) { tempSaveAll(); currentDisplayDate.setDate(currentDisplayDate.getDate() + v); init(); }
+        
+        // [수정] 날짜 이동 시 자동 전날 데이터 복제 (체크 제외)
+        function changeDate(v) { 
+            tempSaveAll(); 
+            const prevKey = getStorageKey();
+            currentDisplayDate.setDate(currentDisplayDate.getDate() + v); 
+            const nextKey = getStorageKey();
+
+            if (!localStorage.getItem(`${nextKey}_list`)) {
+                const prevSubs = JSON.parse(localStorage.getItem(`${prevKey}_list`) || '[]');
+                if (prevSubs.length > 0) {
+                    localStorage.setItem(`${nextKey}_list`, JSON.stringify(prevSubs));
+                    prevSubs.forEach(s => {
+                        localStorage.setItem(`${nextKey}_${s.id}_name`, localStorage.getItem(`${prevKey}_${s.id}_name`) || s.name);
+                        const prevDets = JSON.parse(localStorage.getItem(`${prevKey}_${s.id}_details`) || '[]');
+                        localStorage.setItem(`${nextKey}_${s.id}_details`, JSON.stringify(prevDets.map(d => ({ checked: false, text: d.text }))));
+                    });
+                }
+            }
+            init(); 
+        }
+
         function displayDate() { const days = ['일','월','화','수','목','금','토']; document.getElementById('displayDateText').textContent = `${currentDisplayDate.getMonth()+1}월 ${currentDisplayDate.getDate()}일 (${days[currentDisplayDate.getDay()]})`; }
         function toggleView() { const dv = document.getElementById('dailyView'), cv = document.getElementById('calendarView'); if(dv.style.display === 'none') { dv.style.display = 'block'; cv.style.display = 'none'; loadAllData(); } else { dv.style.display = 'none'; cv.style.display = 'block'; renderCalendar(); } }
+        
         function renderCalendar() {
             const year = currentCalendarDate.getFullYear(), month = currentCalendarDate.getMonth();
             document.getElementById('calendarTitle').textContent = `${year}년 ${month + 1}월`;
@@ -301,6 +307,33 @@
         }
         function changeCalendarMonth(v) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + v); renderCalendar(); }
         function toggleDetails(sid) { document.getElementById(`${sid}-details`).classList.toggle('expanded'); }
+
+        function downloadExcel() {
+            const allData = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('ws_v7_') && key.endsWith('_list')) {
+                    const dateStr = key.replace('ws_v7_', '').replace('_list', '').replace(/_/g, '-');
+                    const baseKey = key.replace('_list', '');
+                    const subs = JSON.parse(localStorage.getItem(key));
+                    subs.forEach(s => {
+                        const dets = JSON.parse(localStorage.getItem(`${baseKey}_${s.id}_details`) || '[]');
+                        allData.push({
+                            "날짜": dateStr,
+                            "과목": localStorage.getItem(`${baseKey}_${s.id}_name`) || s.name,
+                            "상태": (JSON.parse(localStorage.getItem(baseKey) || '{}')[s.id] ? "완료" : "미완료"),
+                            "세부항목": dets.map(d => `${d.checked ? '[V]' : '[ ]'} ${d.text}`).join(', ')
+                        });
+                    });
+                }
+            }
+            if (allData.length === 0) return alert('데이터가 없습니다.');
+            allData.sort((a, b) => new Date(a.날짜) - new Date(b.날짜));
+            const ws = XLSX.utils.json_to_sheet(allData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "학습기록");
+            XLSX.writeFile(wb, `학습기록_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
     </script>
 </body>
 </html>
