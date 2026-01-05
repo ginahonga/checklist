@@ -29,20 +29,25 @@
         .progress-bar-fill { height: 100%; background: var(--success-gradient); transition: width 0.6s ease; }
         
         .subjects { display: flex; flex-direction: column; gap: 10px; }
-        .subject-item { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #eee; transition: 0.3s; }
+        .subject-item { background: #f8f9fa; border-radius: 12px; padding: 12px 15px; border: 1px solid #eee; transition: 0.3s; }
         .subject-item.checked { background: #f0fdf4; border-color: #bdf3d4; }
-        .subject-header { display: flex; align-items: center; gap: 8px; }
-        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 1rem; flex-grow: 1; outline: none; }
         
-        /* [수정된 부분] 아이폰 세로모드 찌그러짐 방지 */
+        /* [핵심 수정] 헤더 영역 정렬 최적화 */
+        .subject-header { display: flex; align-items: center; gap: 6px; width: 100%; overflow: hidden; }
+        .subject-name-input { border: none; background: transparent; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 50px; outline: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* 진행률 텍스트 고정 */
+        .prog-text { font-size: 0.8rem; font-weight: bold; color: var(--primary-color); min-width: 38px; text-align: right; flex-shrink: 0; }
+
+        /* 버튼 찌그러짐 및 이탈 방지 */
         .icon-btn { 
             background: white; 
             border: 1px solid #e2e8f0; 
             width: 28px !important; 
             height: 28px !important; 
-            min-width: 28px; /* 너비 고정 */
-            min-height: 28px; /* 높이 고정 */
-            flex-shrink: 0; /* flex 환경에서 줄어들지 않도록 설정 */
+            min-width: 28px;
+            min-height: 28px;
+            flex-shrink: 0; 
             border-radius: 50%; 
             cursor: pointer; 
             color: #718096; 
@@ -50,8 +55,8 @@
             align-items: center; 
             justify-content: center; 
             font-size: 0.7rem; 
-            transition: 0.2s; 
-            padding: 0; /* 패딩 초기화로 원형 유지 */
+            padding: 0;
+            line-height: 1;
         }
         .icon-btn:hover { background: #f7fafc; color: var(--primary-color); }
         .del-btn { color: #f56565; border-color: #fed7d7; }
@@ -59,7 +64,7 @@
         .detail-list { display: none; margin-top: 10px; padding-left: 5px; border-top: 1px dashed #eee; padding-top: 10px; }
         .detail-list.expanded { display: block; }
         .detail-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-        .detail-item input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; }
+        .detail-item input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; min-width: 0; }
         .detail-item.checked input[type="text"] { text-decoration: line-through; opacity: 0.5; }
 
         .btn-action { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
@@ -144,7 +149,7 @@
                     <div class="subject-header">
                         <input type="checkbox" id="${s.id}" onchange="updateProgress()">
                         <input type="text" class="subject-name-input" id="${s.id}-name" value="${s.name}" onchange="saveSubjectName('${s.id}')">
-                        <div style="font-size:0.8rem; font-weight:bold; color:var(--primary-color); margin-right:5px;" id="${s.id}-progress">0%</div>
+                        <div class="prog-text" id="${s.id}-progress">0%</div>
                         <button class="icon-btn" onclick="toggleDetails('${s.id}')">▼</button>
                         <button class="icon-btn del-btn" onclick="deleteSubject('${s.id}')">✕</button>
                     </div>
@@ -240,7 +245,7 @@
                 if(dets.length === 0) addDetailItem(s.id);
 
                 const items = area.querySelectorAll('.detail-item');
-                const ck = Array.from(items).filter(it => it.querySelector('input[type="checkbox"]').checked).length;
+                const ck = Array.from(items).filter(it => it.querySelector('input[type=\"checkbox\"]').checked).length;
                 const p = items.length > 0 ? Math.round((ck / items.length) * 100) : 0;
                 document.getElementById(`${s.id}-progress`).textContent = p + '%';
             });
@@ -316,7 +321,7 @@
         }
         function changeCalendarMonth(v) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + v); renderCalendar(); }
         function toggleDetails(sid) { document.getElementById(`${sid}-details`).classList.toggle('expanded'); }
-        window.onload = () => { /* 자동시작 대기 */ };
+        window.onload = () => { /* 대기 */ };
     </script>
 </body>
 </html>
